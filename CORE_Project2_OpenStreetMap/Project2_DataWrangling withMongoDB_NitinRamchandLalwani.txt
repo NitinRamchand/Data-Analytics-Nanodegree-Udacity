@@ -1,0 +1,16 @@
+OpenStreetMap_Toulouse_FINAL_Submission.html contains the html version of the jupyter notebook written as the final report for this project.
+OpenStreetMap_Toulouse_FINAL_Submission.ipynb is the Juypter notebook written as the final report for this project
+OpenStreetMap_Compans_Caffarelli_sample.ipynb is the Jupyter notebook that was written to investigate the sample OSM XML file namely Compans_Caffarelli.osm which was used as a sample since it is a neighbourhood inside the Toulouse region which is the dataset wrangled for this project.
+Compans_Caffarelli.osm is the OSM XML file used as the sample to analyse the data inside in a quick manner. 
+Compans_Caffarelli.json is the JSON file created when running the data.py code on the Compans_Caffarelli.osm file
+Toulouse.osm is the full OSM XML file downloaded from OpenStreetMaps Overpass API. A link is provided in the final submission report. The file is 252MB large uncompressed.
+Toulouse.json is the JSON file created from by running the data.py code on the Toulouse.osm file.
+OpenStreetMap_Toulouse.zip is a zip file containg the full data set of Toulouse.osm and is compressed. It is 60.7MB large compressed.
+Toulouse_OSM_OverpassAPI_delimitingarea.png is a snapshot of the Toulouse region that is considered on OpenStreetMap including the coorindates to download the file from OpenStreetMap.
+audit.py contains all the audits performed on the street types and phone formats and the cleaning of the data that is discussed in the report.
+values.py and values_types.py contain the code auditing the "v" attribute and the format they have, whether they have lowercase, colons, etc. More details of their usage in the Compans_Caffarelli sample jupyter notebook
+keys.py and key_types.py contain the code auditing the "k" attribute and format they have and the ctaegories that they can be put into. Again coloc, semicolon etc. More details of their usage in the Compans_Caffarelli sample jupyter notebook
+count_tags.py was run at the very beginning and it gives an idea of how many tags are there of each,i.e. nodes, ways, relations, etc. and including the metadata for each file. 
+attributes.py is the code run to see how many of each type of attribute there are in the file. 
+insert_mongoDB.py is the code run to insert the JSON file into the MongoDB Atlas Cloud.
+Analysis_Toulouse_Data.py contains some of the code run for conducting the analysis however details of it are shown directly on the final submission report. 
