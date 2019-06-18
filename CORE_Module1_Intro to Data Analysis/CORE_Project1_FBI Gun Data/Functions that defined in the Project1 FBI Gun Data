@@ -1,0 +1,12 @@
+# Percent string parsing
+
+def parse_str_percent(str_percent):
+    return float(str_percent.strip("%"))/100
+    
+# Dollar with coma string parsing    
+    
+ def parse_str_dollar_with_coma(str_dollar_with_coma):
+    return float(str_dollar_with_coma.strip("$").replace(",",""))   
+
+    
+    
