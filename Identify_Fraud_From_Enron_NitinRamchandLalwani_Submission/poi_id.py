@@ -5,6 +5,7 @@ sys.path.append("../tools/")
 import pickle
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit, GridSearchCV
 from sklearn.naive_bayes import GaussianNB
 from time import time
@@ -61,6 +62,31 @@ def optimal_features_scores_calculation(n_splits, sss, clf, features, labels):
         df.loc[i,'f1_score'] = f1_score(labels_test, prediction)
     return df.mean(axis=0)
 
+def f1score_calculation_varying_feature(n_splits, sss, clf, numb_features, features, labels):
+    df = pd.DataFrame(0, index=np.arange(1,n_splits), columns=['f1_score'])
+    df.index.name = 'n_split'
+    features_reduced = SelectKBest(f_classif, k=numb_features).fit_transform(features, labels)
+#    sss = StratifiedShuffleSplit(n_splits, test_size, random_state)
+    for i, (e_train, e_test) in enumerate(sss.split(features_reduced, labels)):
+        features_test = []
+        labels_test = []
+        features_train = []
+        labels_train = []
+        for k in e_train:
+            labels_train.append(labels[k])
+            features_train.append(features_reduced[k])
+        for k in e_test:
+            labels_test.append(labels[k])
+            features_test.append(features_reduced[k])
+        clf.fit(features_train,labels_train)
+        prediction = clf.predict(features_test)
+        df.loc[i,'accuracy_score'] = accuracy_score(labels_test, prediction)
+        df.loc[i,'precision'] = precision_score(labels_test, prediction)
+        df.loc[i,'recall'] = recall_score(labels_test, prediction)
+        df.loc[i,'f1_score'] = f1_score(labels_test, prediction)
+    return df.mean(axis=0)
+
+
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
@@ -80,6 +106,44 @@ features_list = ['poi',
  'exercised_stock_options'] # You will need to use more features
 #, 'total payments'
 ### Load the dictionary containing the dataset
+
+###Below the features created including all and non new to compare the efficiency of algorithms for different scenarios
+features_list_non_new_features = ['poi',
+ 'expenses',
+ 'deferred_income',
+ 'long_term_incentive',
+ 'other',
+ 'bonus',
+ 'total_stock_value',
+ 'from_poi_to_this_person',
+ 'restricted_stock',
+ 'salary',
+ 'total_payments',
+ 'exercised_stock_options']
+
+features_list_all = ['poi',
+ 'salary',
+ 'to_messages',
+ 'deferral_payments',
+ 'total_payments',
+ 'fraction_shared_receipt_with_poi',
+ 'exercised_stock_options',
+ 'bonus',
+ 'restricted_stock',
+ 'shared_receipt_with_poi',
+ 'fraction_from_this_person_to_poi',
+ 'restricted_stock_deferred',
+ 'total_stock_value',
+ 'expenses',
+ 'loan_advances',
+ 'from_messages',
+ 'other',
+ 'from_this_person_to_poi',
+ 'director_fees',
+ 'deferred_income',
+ 'long_term_incentive',
+ 'from_poi_to_this_person']
+
 
 def open_dataset():
     with open("final_project_dataset.pkl", "r") as data_file:
@@ -109,13 +173,14 @@ my_dataset = add_features_ratio(my_dataset=my_dataset, new_feature='fraction_sha
 
 
 
-
 ### Extract features and labels from dataset for local testing
-data = featureFormat(my_dataset, features_list, sort_keys = True)
+data = featureFormat(my_dataset, features_list_all, sort_keys = True)
 labels, features = targetFeatureSplit(data)
+#print features
 selector = SelectKBest(score_func=f_classif, k=5)
-selector.fit(features, labels)
-pprint(sorted(zip(selector.scores_, features_list[1:]), reverse=True))
+clf = selector.fit_transform(features, labels)
+pprint(sorted(zip(selector.scores_, features_list_all[1:]), reverse=True))
+#print (clf)
 
 
 ### Task 4: Try a varity of classifiers
@@ -130,6 +195,32 @@ pprint(sorted(zip(selector.scores_, features_list[1:]), reverse=True))
 sss = StratifiedShuffleSplit(n_splits=100, test_size=0.3, random_state=32)
 skb = SelectKBest(f_classif)
 
+###Code to show the f1score vs the number of features in a chart including all features
+f1_score_Gaussian = []
+f1_score_KNN = []
+f1_score_DT = []
+feature_array = range(1,len(features_list_all))
+clf_gaussian_NB = GaussianNB()
+clf_knn = KNeighborsClassifier()
+clf_dtree = DecisionTreeClassifier()
+for numb_feature in feature_array: 
+#for feature in [3,10]: 
+    scores_Gaussian = f1score_calculation_varying_feature(n_splits=100, sss=sss, clf=clf_gaussian_NB, numb_features=numb_feature, features=features, labels=labels)
+    f1_score_Gaussian.append(scores_Gaussian['f1_score'])
+    scores_KNN = f1score_calculation_varying_feature(n_splits=100, sss=sss, clf=clf_knn, numb_features=numb_feature, features=features, labels=labels)
+    f1_score_KNN.append(scores_KNN['f1_score'])
+    scores_DT = f1score_calculation_varying_feature(n_splits=100, sss=sss, clf=clf_dtree, numb_features=numb_feature, features=features, labels=labels)
+    f1_score_DT.append(scores_DT['f1_score'])
+    
+plt.plot(feature_array,f1_score_Gaussian, label='Gaussian_NB')
+plt.plot(feature_array,f1_score_KNN, label='KNN Algorithm')
+plt.plot(feature_array,f1_score_DT, label='Decision Tree')
+plt.title('Algorithm performance for different number of features')
+plt.xlabel('number of features')
+plt.ylabel('f1 score')
+plt.legend()
+plt.show()
+
 ##Algorithm 1 GaussianNaive Bayes
 clf_gaussian_NB = GaussianNB()
 pipeline_GaussianNB = Pipeline(steps = [("SKB", skb), ("NaiveBayes",clf_gaussian_NB)])
@@ -137,10 +228,10 @@ param_grid_GaussianNB = {"SKB__k": range(1,len(features_list))}
 clf_Gaussian_best, f1score_GaussianNB = optimal_feature_estimator(pipeline=pipeline_GaussianNB, param_grid=param_grid_GaussianNB, sss=sss, features=features, labels=labels)
 scores_Gaussian_NB = optimal_features_scores_calculation(n_splits=100, sss=sss, clf=clf_Gaussian_best, features=features, labels=labels)
 print 'scores Gaussian NB', scores_Gaussian_NB
-
-
+  
+  
 ##Algorithm 2 K Nearest Neighbours
-
+  
 clf_knn = KNeighborsClassifier()
 scaler = MinMaxScaler()
 skb = SelectKBest(f_classif)
@@ -149,7 +240,7 @@ param_grid_knn = {"SKB__k": range(1,len(features_list)), "knn__n_neighbors": ran
 clf_knn_best, f1score_knn = optimal_feature_estimator(pipeline=pipeline_knn, param_grid=param_grid_knn, sss=sss, features=features, labels=labels)
 scores_knn = optimal_features_scores_calculation(n_splits=100, sss=sss, clf=clf_knn_best, features=features, labels=labels)
 print 'scores K neareast Neighbour', scores_knn
-
+  
 ###Algorithm 3 Decision Tree Classifier
 clf_dtree = DecisionTreeClassifier()
 pipeline_DT = Pipeline(steps = [("SKB", skb), ("DT",clf_dtree)])
@@ -157,6 +248,37 @@ param_grid_DT = {"SKB__k": range(1,len(features_list)), 'DT__max_depth': [2,5,10
 clf_DT_best, f1score_DT = optimal_feature_estimator(pipeline=pipeline_DT, param_grid=param_grid_DT, sss=sss, features=features, labels=labels)
 scores_DT = optimal_features_scores_calculation(n_splits=100, sss=sss, clf=clf_DT_best, features=features, labels=labels)
 print 'scores Decision Tree', scores_DT
+
+
+
+# ##Algorithm 1 GaussianNaive Bayes
+# clf_gaussian_NB = GaussianNB()
+# pipeline_GaussianNB = Pipeline(steps = [("SKB", skb), ("NaiveBayes",clf_gaussian_NB)])
+# param_grid_GaussianNB = {"SKB__k": range(1,len(features_list_non_new_features))}
+# clf_Gaussian_best, f1score_GaussianNB = optimal_feature_estimator(pipeline=pipeline_GaussianNB, param_grid=param_grid_GaussianNB, sss=sss, features=features, labels=labels)
+# scores_Gaussian_NB = optimal_features_scores_calculation(n_splits=100, sss=sss, clf=clf_Gaussian_best, features=features, labels=labels)
+# print 'scores Gaussian NB', scores_Gaussian_NB
+# 
+# 
+# ##Algorithm 2 K Nearest Neighbours
+# 
+# clf_knn = KNeighborsClassifier()
+# scaler = MinMaxScaler()
+# skb = SelectKBest(f_classif)
+# pipeline_knn = Pipeline(steps = [("scaling", scaler), ("SKB", skb), ("knn",clf_knn)])
+# param_grid_knn = {"SKB__k": range(1,len(features_list_non_new_features)), "knn__n_neighbors": range(1,len(features_list_non_new_features))}
+# clf_knn_best, f1score_knn = optimal_feature_estimator(pipeline=pipeline_knn, param_grid=param_grid_knn, sss=sss, features=features, labels=labels)
+# scores_knn = optimal_features_scores_calculation(n_splits=100, sss=sss, clf=clf_knn_best, features=features, labels=labels)
+# print 'scores K neareast Neighbour', scores_knn
+# 
+# ###Algorithm 3 Decision Tree Classifier
+# clf_dtree = DecisionTreeClassifier()
+# pipeline_DT = Pipeline(steps = [("SKB", skb), ("DT",clf_dtree)])
+# param_grid_DT = {"SKB__k": range(1,len(features_list_non_new_features)), 'DT__max_depth': [2,5,10,15,20], 'DT__min_samples_split': [2,4,6,8,10], 'DT__criterion': ['gini','entropy']}
+# clf_DT_best, f1score_DT = optimal_feature_estimator(pipeline=pipeline_DT, param_grid=param_grid_DT, sss=sss, features=features, labels=labels)
+# scores_DT = optimal_features_scores_calculation(n_splits=100, sss=sss, clf=clf_DT_best, features=features, labels=labels)
+# print 'scores Decision Tree', scores_DT
+
 
 if (f1score_GaussianNB > f1score_knn) & (f1score_GaussianNB > f1score_DT):
     clf = clf_Gaussian_best
